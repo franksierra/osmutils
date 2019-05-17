@@ -1,0 +1,36 @@
+SELECT
+	relations.id,
+	relation_members.member_type,
+	relation_members.member_id,
+	relation_members.member_role,
+	relation_members.sequence
+FROM
+	relations
+INNER JOIN relation_members ON relations.id = relation_members.relation_id
+WHERE
+	id = 108089
+AND member_type = 'way'
+ORDER BY
+	relation_members.sequence
+
+SELECT
+ways.id,
+way_nodes.node_id,
+way_nodes.sequence,
+nodes.latitude,
+nodes.longitude
+FROM
+ways
+INNER JOIN way_nodes ON way_nodes.way_id = ways.id
+INNER JOIN nodes ON way_nodes.node_id = nodes.id
+WHERE
+	ways.id = 33627609
+ORDER BY
+	way_nodes.sequence
+
+SELECT
+	MIN(latitude),
+	MAX(latitude),
+	MIN(longitude),
+	MAX(longitude)
+from nodes
