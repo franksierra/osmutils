@@ -24,6 +24,7 @@ class Validator
     {
         $query = "
             SELECT
+                count(*),
                 relations.id AS relation_id,
                 relation_members.sequence AS relation_sequence,
                 relation_members.member_id,
@@ -41,7 +42,11 @@ class Validator
             WHERE
                 (relation_members.member_type = 'node' AND nodes.id IS NULL)
             OR (relation_members.member_type = 'way' AND ways.id IS NULL)
-            OR (relation_members.member_type = 'relation' AND R.id IS NULL)";
+            OR (relation_members.member_type = 'relation' AND R.id IS NULL)
+            GROUP BY
+	            relation_members.member_id,
+	            relation_members.member_type
+	        ";
 
         return $this->db->query($query);
     }

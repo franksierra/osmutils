@@ -29,6 +29,25 @@ class Extractor
         return $points;
     }
 
+    public function runfull()
+    {
+        $points = [];
+        $relations = $this->get_testfull();
+        foreach ($relations as $relation) {
+            $p = [
+                "relation_id" => $relation["relation_id"],
+                "relation_sequence" => $relation["relation_sequence"],
+                "way_id" => $relation["way_id"],
+                "way_sequence" => $relation["way_sequence"],
+                "node_id" => $relation["node_id"],
+                "lat" => $relation["latitude"],
+                "lon" => $relation["longitude"]
+            ];
+            $points[] = $p;
+        }
+        return $points;
+    }
+
 
     function get_test($id)
     {
@@ -50,6 +69,31 @@ class Extractor
             WHERE
                 relations.id = $id
             AND member_type = 'way'
+            ORDER BY
+                relation_members.sequence,
+                way_nodes.sequence DESC;
+        ";
+        return $this->db->query($query);
+    }
+    function get_testfull()
+    {
+        $query = "
+            SELECT
+                relations.id as relation_id,
+                relation_members.sequence as relation_sequence,
+                ways.id as way_id,
+                way_nodes.sequence as way_sequence,
+                nodes.id as node_id,
+                nodes.latitude,
+                nodes.longitude
+            FROM
+                relations
+            INNER JOIN relation_members ON relations.id = relation_members.relation_id AND relations.id IN (SELECT	relation_id FROM relation_tags WHERE k LIKE 'admin_level' GROUP BY relation_id)
+            INNER JOIN ways ON ways.id = relation_members.member_id
+            INNER JOIN way_nodes ON way_nodes.way_id = ways.id
+            INNER JOIN nodes ON way_nodes.node_id = nodes.id
+            WHERE
+                member_type = 'way'
             ORDER BY
                 relation_members.sequence,
                 way_nodes.sequence DESC;

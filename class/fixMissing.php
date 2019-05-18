@@ -89,10 +89,17 @@ class fixMissing
         $dirty_tags = $json->{$entity}->tag ?? [];
         $tags = [];
         foreach ($dirty_tags as $item) {
-            $tags[] = [
-                "key" => $item->{"@attributes"}->k,
-                "value" => $item->{"@attributes"}->v
-            ];
+            if (isset($item->{"@attributes"})) {
+                $tags[] = [
+                    "key" => $item->{"@attributes"}->k,
+                    "value" => $item->{"@attributes"}->v
+                ];
+            } else {
+                $tags[] = [
+                    "key" => $item->k,
+                    "value" => $item->v
+                ];
+            }
         }
 
         $dirty_nodes = $json->{$entity}->nd ?? [];
