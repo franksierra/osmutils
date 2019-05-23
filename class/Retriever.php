@@ -1,7 +1,7 @@
 <?php
 include_once __DIR__ . "/DB.php";
 
-class getMissing
+class Retriever
 {
     private $db = NULL;
     private $cache_dir = __DIR__ . "/../cache/";
@@ -9,36 +9,14 @@ class getMissing
 
     public function __construct($db = 'osmdata')
     {
-        $this->db = new DB($db);
         @mkdir($this->cache_dir, 0655, true);
     }
 
-    public function run($missing)
+    public function get($entity, $id)
     {
-        $count = 0;
-        //Get All de Nodes
-        foreach ($missing['node'] as $item) {
-            $this->request('node', $item);
-            echo ++$count . "\n";
-        }
-        //Get All de Relations
-        foreach ($missing['relation'] as $item) {
-            $this->request('relation', $item);
-            echo ++$count . "\n";
-        }
-        //Get All de Ways
-        foreach ($missing['way'] as $item) {
-            $this->request('way', $item);
-            echo ++$count . "\n";
-        }
-
-    }
-
-    private function request($type, $id)
-    {
-        $file = $this->cache_dir . $type . "-" . $id . ".xml";
+        $file = $this->cache_dir . $entity . "-" . $id . ".xml";
         if (!file_exists($file)) {
-            $url = $this->remote_api . $type . "/" . $id;
+            $url = $this->remote_api . $entity . "/" . $id . "/full";
             $curl = curl_init();
             curl_setopt_array($curl,
                 [
@@ -69,5 +47,4 @@ class getMissing
 
         return $response;
     }
-
 }

@@ -1,16 +1,13 @@
 <?php
-include_once __DIR__ . "/DB.php";
 
-class fixMissing
+class Fixer
 {
-    private $db = NULL;
     private $entity_handlers = [];
     private $cache_dir = __DIR__ . "/../cache/";
     private $sql_dir = __DIR__ . "/../sqls/";
 
     public function __construct($db = 'osmdata')
     {
-        $this->db = new DB($db);
         @mkdir($this->sql_dir, 0655, true);
         $this->entity_handlers = array(
             "nodes" => null,
@@ -35,37 +32,33 @@ class fixMissing
 
     }
 
-    public function run($missing)
+    public function run($entity, $id)
     {
-        $count = 0;
-        //Get All de Nodes
-        foreach ($missing['node'] as $item) {
-            $xml = $this->get_file('node', $item);
-            if ($xml != NULL) {
-                $data = $this->proccess('node', $xml);
-                $this->makeEntity('node', $data);
-            }
-            echo ++$count . "\n";
+        $xml = $this->get_file($entity, $id);
+        $json = json_decode(json_encode($xml));
+        unset($json->{"@attributes"});
+
+        foreach ($json->node as $item) {
+            $data = $this->proccess($item);
+            $this->makeEntity('node', $data);
         }
-        //Get All de Relations
-        foreach ($missing['relation'] as $item) {
-            $xml = $this->get_file('relation', $item);
-            if ($xml != NULL) {
-                $data = $this->proccess('relation', $xml);
-                $this->makeEntity('relation', $data);
-            }
-            echo ++$count . "\n";
-        }
-        //Get All de Ways
-        foreach ($missing['way'] as $item) {
-            $xml = $this->get_file('way', $item);
-            if ($xml != NULL) {
-                $data = $this->proccess('way', $xml);
+        if (!is_array($json->way)) {
+            $data = $this->proccess($json->way);
+            $this->makeEntity('way', $data);
+        } else {
+            foreach ($json->way as $item) {
+                $data = $this->proccess($item);
                 $this->makeEntity('way', $data);
             }
-            echo ++$count . "\n";
         }
-
+//        foreach ($missing['relation'] as $item) {
+//            $xml = $this->get_file('relation', $item);
+//            if ($xml != NULL) {
+//                $data = $this->proccess('relation', $xml);
+//                $this->makeEntity('relation', $data);
+//            }
+//            echo ++$count . "\n";
+//        }
     }
 
     private function get_file($entity, $id)
@@ -81,12 +74,11 @@ class fixMissing
         return NULL;
     }
 
-    private function proccess($entity, $xml)
+    private function proccess($json)
     {
-        $json = json_decode(json_encode($xml));
-        $attributes = $json->{$entity}->{"@attributes"};
+        $attributes = $json->{"@attributes"};
 
-        $dirty_tags = $json->{$entity}->tag ?? [];
+        $dirty_tags = $json->tag ?? [];
         $tags = [];
         foreach ($dirty_tags as $item) {
             if (isset($item->{"@attributes"})) {
@@ -102,7 +94,7 @@ class fixMissing
             }
         }
 
-        $dirty_nodes = $json->{$entity}->nd ?? [];
+        $dirty_nodes = $json->nd ?? [];
         $nodes = [];
         $sequence = 0;
         foreach ($dirty_nodes as $item) {
@@ -113,7 +105,7 @@ class fixMissing
             $sequence++;
         }
 
-        $dirty_members = $json->{$entity}->member ?? [];
+        $dirty_members = $json->member ?? [];
         $members = [];
         $sequence = 0;
         foreach ($dirty_members as $item) {
@@ -132,7 +124,7 @@ class fixMissing
             'latitude' => $attributes->lat ?? "",
             'longitude' => $attributes->lon ?? "",
             'changeset_id' => $attributes->changeset ?? "",
-            'visible' => $attributes->visible ?? "",
+            'visible' => ($attributes->visible ?? "") == "true" ? 1 : 0,
             'timestamp' => $attributes->timestamp ?? "",
             'version' => $attributes->version ?? "",
             'uid' => $attributes->uid ?? "",
