@@ -6,6 +6,13 @@ class DB
 
     public function __construct($db = 'osmdata')
     {
+//        $this->db = new mysqli(
+//            '192.168.10.158',
+//            'fsierra',
+//            's1err4f2016h',
+//            $db,
+//            3306
+//        );
         $this->db = new mysqli(
             '127.0.0.1',
             'root',

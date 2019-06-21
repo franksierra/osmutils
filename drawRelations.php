@@ -6,9 +6,7 @@ include __DIR__ . "/class/Extractor.php";
 $extractor = new Extractor();
 
 $box = $extractor->get_box(108089)[0];
-
 header("Content-type: image/png");
-//header("Content-type: text/plain");
 
 $scale = 500;
 
@@ -20,26 +18,29 @@ $img = imagecreatetruecolor($img_width, $img_height);
 //imagefill($img, 0, 0, $white);
 
 
-
-$extract = $extractor->run(108089);
-foreach ($extract["polygons"] as $polygon) {
-    $point = $polygon[0];
-    unset($polygon[0]);
-    $P = point($box, $point['lat'], $point['lon'], $scale, $img_height);
-    $firstPx = $P['x'];
-    $firstPy = $P['y'];
-    $color = $way_id = $point["way_id"];
-    foreach ($polygon as $point) {
-        $Pn = point($box, $point['lat'], $point['lon'], $scale, $img_height);
-        if ($way_id != $point["way_id"]) {
-            $color = $way_id;
-            $way_id = $point["way_id"];
-            if (isset($extract['open_ways'][$way_id])) {
-                imagestring($img, 1, $P['x'], $P['y'], $way_id, $color);
+//$relations = $extractor->get_relations();
+$relations[] = array("relation_id" => 2403848);
+foreach ($relations as $relation) {
+    $extract = $extractor->run($relation['relation_id']);
+    foreach ($extract["polygons"] as $polygon) {
+        $point = $polygon[0];
+        unset($polygon[0]);
+        $P = point($box, $point['lat'], $point['lon'], $scale, $img_height);
+        $firstPx = $P['x'];
+        $firstPy = $P['y'];
+        $color = $way_id = $point["way_id"];
+        foreach ($polygon as $point) {
+            $Pn = point($box, $point['lat'], $point['lon'], $scale, $img_height);
+            if ($way_id != $point["way_id"]) {
+                $color = $way_id;
+                $way_id = $point["way_id"];
+                if (isset($extract['open_ways'][$way_id])) {
+                    imagestring($img, 1, $P['x'], $P['y'], $way_id, $color);
+                }
             }
+            imageline($img, $P['x'], $P['y'], $Pn['x'], $Pn['y'], $color);
+            $P = $Pn;
         }
-        imageline($img, $P['x'], $P['y'], $Pn['x'], $Pn['y'], $color);
-        $P = $Pn;
     }
 }
 imagepng($img);

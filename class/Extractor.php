@@ -13,54 +13,48 @@ class Extractor
     public function run($id)
     {
         $points = [];
+        $open_ways = [];
 
         // Get all the relation members
         $members = $this->get_relation_members($id);
-        $last_lat = null;
-        $last_lon = null;
+
+
+        $first_node_id = null;
         $last_node_id = null;
 
-        /**
-         * relation_id,
-         * member_type,
-         * member_id,
-         * member_role,
-         * relation_sequence
-         */
-        $empty_ways = [];
-        $open_ways = [];
+        $last_member = null;
+        $last_member_nodes = null;
+
+        $polygons = null;
+        $polygon_first_node_id = null;
+
         foreach ($members as $member) {
             $nodes = $this->get_member_nodes($member['member_id']);
-            /**
-             * way_id,
-             * node_sequence,
-             * node_id,
-             * latitude,
-             * longitude
-             */
             if (count($nodes) == 0) {
                 $empty_ways[$member["member_id"]] = 1;
                 continue;
             }
-            if ($last_lat == null && $last_lon == null && $last_node_id == null) {
-                $last_lat = $nodes[0]['latitude'];
-                $last_lon = $nodes[0]['longitude'];
-                $last_node_id = $nodes[0]["node_id"];
-            }
-            if ($last_lat + $last_lon != $nodes[0]['latitude'] + $nodes[0]['longitude']) {
-                //Reversed ?
-                if ($last_lat == $nodes[count($nodes) - 1]['latitude'] && $last_lon == $nodes[count($nodes) - 1]['longitude']) {
+
+
+            if ($first_node_id != null && $last_node_id != null) {
+
+                if ($last_node_id == $nodes[0]['node_id']) {
+                    // This array is OK;
+                }
+                elseif ($last_node_id == $nodes[count($nodes) - 1]['node_id']) {
                     $nodes = array_reverse($nodes);
                 } else {
-                    if ($last_node_id == $nodes[count($nodes) - 1]['longitude']) {
-                        $nodes = array_reverse($nodes);
-                    } else {
-                        $open_ways[$member["member_id"]] = $nodes;
-                    }
+                    $open_ways[$member["member_id"]] = $nodes;
                 }
+
+            } else {
+                $polygon_first_node_id = $nodes[0]["node_id"];
             }
+            $first_node_id = $nodes[0]["node_id"];
+            $last_node_id = $nodes[count($nodes) - 1]["node_id"];
+
             foreach ($nodes as $node) {
-                $p = [
+                $points[] = [
                     "relation_id" => $member["relation_id"],
                     "relation_sequence" => $member["relation_sequence"],
                     "way_id" => $member["member_id"],
@@ -69,91 +63,25 @@ class Extractor
                     "lat" => $node["latitude"],
                     "lon" => $node["longitude"]
                 ];
-                $points[] = $p;
-                $last_lat = $node['latitude'];
-                $last_lon = $node['longitude'];
             }
-
+            if ($polygon_first_node_id == $last_node_id) {
+                // Se cerro el poligono
+                $polygons[] = $points;
+                $points = [];
+                $first_node_id = null;
+                $last_node_id = null;
+            }
+        }
+        if (count($points) > 0){
+            $polygons[] = $points;
+            $points = [];
         }
         return [
             "points" => $points,
-            "empty_ways" => $empty_ways,
+            "polygons" => $polygons,
             "open_ways" => $open_ways
         ];
     }
-//
-//    public function runfull()
-//    {
-//        $points = [];
-//        $relations = $this->get_testfull();
-//        foreach ($relations as $relation) {
-//            $p = [
-//                "relation_id" => $relation["relation_id"],
-//                "relation_sequence" => $relation["relation_sequence"],
-//                "way_id" => $relation["way_id"],
-//                "way_sequence" => $relation["way_sequence"],
-//                "node_id" => $relation["node_id"],
-//                "lat" => $relation["latitude"],
-//                "lon" => $relation["longitude"]
-//            ];
-//            $points[] = $p;
-//        }
-//        return $points;
-//    }
-//
-//
-//    function get_test($id)
-//    {
-//        $query = "
-//            SELECT
-//                relations.id as relation_id,
-//                relation_members.sequence as relation_sequence,
-//                ways.id as way_id,
-//                way_nodes.sequence as way_sequence,
-//                nodes.id as node_id,
-//                nodes.latitude,
-//                nodes.longitude
-//            FROM
-//                relations
-//            INNER JOIN relation_members ON relations.id = relation_members.relation_id
-//            INNER JOIN ways ON ways.id = relation_members.member_id
-//            INNER JOIN way_nodes ON way_nodes.way_id = ways.id
-//            INNER JOIN nodes ON way_nodes.node_id = nodes.id
-//            WHERE
-//                relations.id = $id
-//            AND member_type = 'way'
-//            ORDER BY
-//                relation_members.sequence,
-//                way_nodes.sequence ASC;
-//        ";
-//        return $this->db->query($query);
-//    }
-//
-//    function get_testfull()
-//    {
-//        $query = "
-//            SELECT
-//                relations.id as relation_id,
-//                relation_members.sequence as relation_sequence,
-//                ways.id as way_id,
-//                way_nodes.sequence as way_sequence,
-//                nodes.id as node_id,
-//                nodes.latitude,
-//                nodes.longitude
-//            FROM
-//                relations
-//            INNER JOIN relation_members ON relations.id = relation_members.relation_id AND relations.id IN (SELECT	relation_id FROM relation_tags WHERE k LIKE 'admin_level' GROUP BY relation_id)
-//            INNER JOIN ways ON ways.id = relation_members.member_id
-//            INNER JOIN way_nodes ON way_nodes.way_id = ways.id
-//            INNER JOIN nodes ON way_nodes.node_id = nodes.id
-//            WHERE
-//                member_type = 'way'
-//            ORDER BY
-//                relation_members.sequence,
-//                way_nodes.sequence DESC;
-//        ";
-//        return $this->db->query($query);
-//    }
 
     function get_relation_members($id)
     {
@@ -171,7 +99,7 @@ class Extractor
             id = $id
             AND member_type = 'way'
         ORDER BY
-            relation_members.sequence DESC;
+            relation_members.sequence ASC;
         ";
         return $this->db->query($query);
     }
@@ -180,7 +108,6 @@ class Extractor
     {
         $query = "
             SELECT
-                way_nodes.way_id as way_id,
                 way_nodes.sequence as node_sequence,
                 nodes.id as node_id,
                 nodes.latitude as latitude,
@@ -191,7 +118,7 @@ class Extractor
             WHERE
                 way_nodes.way_id = $id 
             ORDER BY
-                way_nodes.sequence ASC";
+                way_nodes.sequence DESC";
         return $result = $this->db->query($query);
     }
 
@@ -214,5 +141,37 @@ class Extractor
         AND member_type = 'way'
         ";
         return $this->db->query($query);
+    }
+
+    public function get_relations()
+    {
+        $query = "
+            SELECT
+                relation_id,
+                CAST(v AS DECIMAL) AS val
+            FROM
+                relation_tags 
+            WHERE
+                relation_id IN (
+                SELECT
+                    relation_id 
+                FROM
+                    relation_tags 
+                WHERE
+                    relation_id IN ( SELECT relation_id FROM relation_tags WHERE k = 'boundary' GROUP BY relation_id ) 
+                    AND k IN ( 'admin_level', 'boundary', 'name', 'type' ) 
+                GROUP BY
+                    relation_id 
+                ) 
+                AND k = 'admin_level' 
+                AND v IN (2,4,8)
+            GROUP BY
+                relation_id,
+                v 
+            ORDER BY
+                val
+	";
+        return $this->db->query($query);
+
     }
 }
