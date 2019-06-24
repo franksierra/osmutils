@@ -14,45 +14,48 @@ class Extractor
     {
         $points = [];
         $open_ways = [];
-
         // Get all the relation members
         $members = $this->get_relation_members($id);
-
-
-        $first_node_id = null;
-        $last_node_id = null;
-
-        $last_member = null;
-        $last_member_nodes = null;
+        for ($i = 0; $i < count($members); $i++) {
+            $nodes = $this->get_member_nodes($members[$i]['member_id']);
+            $members[$i]["nodes"] = $nodes;
+            $members[$i]["tail"] = $nodes[0]["node_id"];
+            $members[$i]["head"] = $nodes[count($nodes) - 1]['node_id'];
+        }
 
         $polygons = null;
-        $polygon_first_node_id = null;
+        $first_run = true;
+        $global_first_node_id = null;
+        $global_last_node_id = null;
 
-        foreach ($members as $member) {
-            $nodes = $this->get_member_nodes($member['member_id']);
+        $poly = 0;
+        $count = count($members);
+        for ($i = 0; $i < $count; $i++) {
+            $member = $members[$i];
+            $nodes = $member["nodes"];
             if (count($nodes) == 0) {
                 $empty_ways[$member["member_id"]] = 1;
                 continue;
             }
+            $current_way_first_node_id = $nodes[0]["node_id"];
+            $current_way_last_node_id = $nodes[count($nodes) - 1]['node_id'];
 
-
-            if ($first_node_id != null && $last_node_id != null) {
-
-                if ($last_node_id == $nodes[0]['node_id']) {
-                    // This array is OK;
-                }
-                elseif ($last_node_id == $nodes[count($nodes) - 1]['node_id']) {
+            if (!$first_run) {
+                $global_first_node_id = $points[0]["node_id"];
+                $global_last_node_id = $points[count($points) - 1]['node_id'];
+                if ($current_way_first_node_id == $global_last_node_id) {
+//                    echo "OK";
+                    unset()
+                } elseif ($current_way_last_node_id == $global_last_node_id) {
+                    $nodes = array_reverse($nodes);
+                } elseif ($current_way_last_node_id == $global_first_node_id) {
+                    $points = array_reverse($points);
                     $nodes = array_reverse($nodes);
                 } else {
+                    $poly++;
                     $open_ways[$member["member_id"]] = $nodes;
                 }
-
-            } else {
-                $polygon_first_node_id = $nodes[0]["node_id"];
             }
-            $first_node_id = $nodes[0]["node_id"];
-            $last_node_id = $nodes[count($nodes) - 1]["node_id"];
-
             foreach ($nodes as $node) {
                 $points[] = [
                     "relation_id" => $member["relation_id"],
@@ -61,18 +64,24 @@ class Extractor
                     "node_sequence" => $node["node_sequence"],
                     "node_id" => $node["node_id"],
                     "lat" => $node["latitude"],
-                    "lon" => $node["longitude"]
+                    "lon" => $node["longitude"],
+                    "poly" => $poly
                 ];
             }
-            if ($polygon_first_node_id == $last_node_id) {
+            $first_run = false;
+            if ($points[0]["node_id"] == $points[count($points) - 1]['node_id']) {
                 // Se cerro el poligono
                 $polygons[] = $points;
                 $points = [];
-                $first_node_id = null;
-                $last_node_id = null;
+                $first_run = true;
+                $current_way_first_node_id = null;
+                $current_way_last_node_id = null;
+                $global_first_node_id = null;
+                $global_last_node_id = null;
             }
+
         }
-        if (count($points) > 0){
+        if (count($points) > 0) {
             $polygons[] = $points;
             $points = [];
         }
@@ -83,7 +92,7 @@ class Extractor
         ];
     }
 
-    function get_relation_members($id)
+    private function get_relation_members($id)
     {
         $query = "
         SELECT
@@ -104,7 +113,7 @@ class Extractor
         return $this->db->query($query);
     }
 
-    function get_member_nodes($id)
+    private function get_member_nodes($id)
     {
         $query = "
             SELECT
@@ -122,7 +131,7 @@ class Extractor
         return $result = $this->db->query($query);
     }
 
-    function get_box($id)
+    public function get_box($id)
     {
         $query = "
         SELECT
@@ -164,7 +173,7 @@ class Extractor
                     relation_id 
                 ) 
                 AND k = 'admin_level' 
-                AND v IN (2,4,8)
+                AND v IN (4,8)
             GROUP BY
                 relation_id,
                 v 
@@ -174,4 +183,5 @@ class Extractor
         return $this->db->query($query);
 
     }
+
 }

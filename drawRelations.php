@@ -1,11 +1,14 @@
 <?php
 set_time_limit(0);
-ini_set('memory_limit', '2048M');
+ini_set('memory_limit', '-1');
 include __DIR__ . "/class/Extractor.php";
 
 $extractor = new Extractor();
-
+//108089
 $box = $extractor->get_box(108089)[0];
+//$relations = $extractor->get_relations();
+$relations[] = array("relation_id" => 108089);
+
 header("Content-type: image/png");
 
 $scale = 500;
@@ -18,8 +21,6 @@ $img = imagecreatetruecolor($img_width, $img_height);
 //imagefill($img, 0, 0, $white);
 
 
-//$relations = $extractor->get_relations();
-$relations[] = array("relation_id" => 2403848);
 foreach ($relations as $relation) {
     $extract = $extractor->run($relation['relation_id']);
     foreach ($extract["polygons"] as $polygon) {
