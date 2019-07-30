@@ -12,18 +12,23 @@ class Extractor
 
     public function run($id)
     {
-        $points = [];
-        $open_ways = [];
-        // Get all the relation members
         $members = $this->get_relation_members($id);
         for ($i = 0; $i < count($members); $i++) {
             $nodes = $this->get_member_nodes($members[$i]['member_id']);
-            $members[$i]["nodes"] = $nodes;
-            $members[$i]["tail"] = $nodes[0]["node_id"];
-            $members[$i]["head"] = $nodes[count($nodes) - 1]['node_id'];
+            $members[$i]["nodes"] = [];
+            if (count($nodes) > 0) {
+                $members[$i]["nodes"] = $nodes;
+                $members[$i]["tail"] = $nodes[0]["node_id"];
+                $members[$i]["head"] = $nodes[count($nodes) - 1]['node_id'];
+            }
+
         }
 
-        $polygons = null;
+        $points = [];
+        $open_ways = [];
+        $empty_ways = [];
+        $polygons = [];
+
         $first_run = true;
         $global_first_node_id = null;
         $global_last_node_id = null;
@@ -45,7 +50,6 @@ class Extractor
                 $global_last_node_id = $points[count($points) - 1]['node_id'];
                 if ($current_way_first_node_id == $global_last_node_id) {
 //                    echo "OK";
-                    unset()
                 } elseif ($current_way_last_node_id == $global_last_node_id) {
                     $nodes = array_reverse($nodes);
                 } elseif ($current_way_last_node_id == $global_first_node_id) {
@@ -88,7 +92,8 @@ class Extractor
         return [
             "points" => $points,
             "polygons" => $polygons,
-            "open_ways" => $open_ways
+            "open_ways" => $open_ways,
+            "empty_ways" => $empty_ways
         ];
     }
 

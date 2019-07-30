@@ -4,7 +4,7 @@ class Fixer
 {
     private $entity_handlers = [];
     private $cache_dir = __DIR__ . "/../cache/";
-    private $sql_dir = __DIR__ . "/../sqls/";
+    private $sql_dir = __DIR__ . "/../sqls/fix/";
 
     public function __construct($db = 'osmdata')
     {

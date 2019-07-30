@@ -5,8 +5,10 @@ include __DIR__ . "/class/Extractor.php";
 include __DIR__ . "/class/Retriever.php";
 include __DIR__ . "/class/Fixer.php";
 
-$extractor = new Extractor();
-$missing_ways = $extractor->run(108089)["empty_ways"];
+$extractor = new Extractor('osmserver');
+$ways = $extractor->run(108089);
+
+$missing_ways = $ways["empty_ways"];
 
 $api = new Retriever();
 $count = 0;

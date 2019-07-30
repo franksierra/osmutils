@@ -6,7 +6,7 @@ include __DIR__ . "/class/Extractor.php";
 $extractor = new Extractor();
 //108089
 $box = $extractor->get_box(108089)[0];
-//$relations = $extractor->get_relations();
+$relations = $extractor->get_relations();
 $relations[] = array("relation_id" => 108089);
 
 header("Content-type: image/png");
@@ -29,14 +29,17 @@ foreach ($relations as $relation) {
         $P = point($box, $point['lat'], $point['lon'], $scale, $img_height);
         $firstPx = $P['x'];
         $firstPy = $P['y'];
-        $color = $way_id = $point["way_id"];
+        $way_id = $point["way_id"];
+        $color = $relation['relation_id'];
         foreach ($polygon as $point) {
             $Pn = point($box, $point['lat'], $point['lon'], $scale, $img_height);
             if ($way_id != $point["way_id"]) {
-                $color = $way_id;
                 $way_id = $point["way_id"];
+                $color = $relation['relation_id'];
                 if (isset($extract['open_ways'][$way_id])) {
-                    imagestring($img, 1, $P['x'], $P['y'], $way_id, $color);
+                    imagestring($img, 1, $P['x'], $P['y'], "O-" . $way_id . "-" . $relation['relation_id'], $color);
+                } elseif (isset($extract['empty_ways'][$way_id])) {
+                    imagestring($img, 1, $P['x'], $P['y'], "M-" . $way_id . "-" . $relation['relation_id'], $color);
                 }
             }
             imageline($img, $P['x'], $P['y'], $Pn['x'], $Pn['y'], $color);
