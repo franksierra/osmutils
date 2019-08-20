@@ -3,15 +3,26 @@ require "class/OSMData.php";
 
 set_time_limit(-1);
 
-$OSMData = new OSMData('osmserver');
+$OSMData = new OSMData('osmdata');
 
-//$relation = 108089;
-$relation = 108089;
-$box = $OSMData->get_box($relation)[0];
-//$relations[] = array(
-//    "relation_id" => $relation,
-//    "admin_level" => 2
-//);
+$box = $OSMData->get_box("108089,120027,288247,1521463")[0];
+
+$relations[] = array(
+    "relation_id" => 108089,
+    "admin_level" => 2
+);
+$relations[] = array(
+    "relation_id" => 120027,
+    "admin_level" => 2
+);
+$relations[] = array(
+    "relation_id" => 288247,
+    "admin_level" => 2
+);
+$relations[] = array(
+    "relation_id" => 1521463,
+    "admin_level" => 2
+);
 $relations = $OSMData->get_relations();
 
 header("Content-type: image/png");
@@ -54,7 +65,6 @@ foreach ($relations as $relation) {
         }
     }
 }
-
 imagepng($img);
 
 

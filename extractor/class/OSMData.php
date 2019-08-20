@@ -159,7 +159,7 @@ class OSMData
                     relation_id 
                 ) 
                 AND k = 'admin_level' 
-                AND v IN (2,4,8)
+                AND v IN (2 /*,4,8*/ )
             GROUP BY
                 relation_id,
                 v 
@@ -184,7 +184,7 @@ class OSMData
         INNER JOIN way_nodes ON way_nodes.way_id = ways.id
         INNER JOIN nodes ON way_nodes.node_id = nodes.id
         WHERE
-            relations.id = $id
+            relations.id IN ($id)
         AND member_type = 'way'
         ";
         return $this->db->query($query);
